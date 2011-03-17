@@ -10,7 +10,7 @@ module Trader
       end
       rate
     end
-    
+        
     def ==(other)
       from == other.from && to == other.to && conversion == other.conversion
     end

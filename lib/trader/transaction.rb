@@ -14,18 +14,22 @@ module Trader
     def method_missing(method,*args)
       super unless method =~/to_(.*)_currency/
       target_currency = $1.upcase
-      puts self.currency
-      puts target_currency
-      conversion = ConversionRates.get(:from => self.currency, :to => target_currency).conversion
+      # puts "Searching #{self.currency} - #{target_currency}"
+      conversion = ConversionRates.get(:from => self.currency, :to => target_currency)
 
       self.class.class_eval do
         define_method(method) do
-          Transaction.create(:store => self.store, :sku => self.sku, :amount_in_cents => (self.amount_in_cents * conversion).round(4), :currency => target_currency)
+
+          # puts conversion
+          # puts amount_in_cents
+          amount_in_cents = BigDecimal((self.amount_in_cents * conversion).to_s).round(2,BigDecimal::ROUND_HALF_EVEN).to_i
+
+          Transaction.create(:store => self.store, :sku => self.sku, :amount_in_cents => amount_in_cents, :currency => target_currency)
         end
 
       end
 
-      send(method,*args).amount_in_cents
+      send(method,*args)
 
     end
     
