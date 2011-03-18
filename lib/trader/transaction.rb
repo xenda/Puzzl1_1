@@ -22,7 +22,7 @@ module Trader
 
           # puts conversion
           # puts amount_in_cents
-          amount_in_cents = BigDecimal((self.amount_in_cents * conversion).to_s).round(2,BigDecimal::ROUND_HALF_EVEN).to_i
+          amount_in_cents = BigDecimal((self.amount_in_cents * conversion).to_s).round(2,BigDecimal::ROUND_HALF_EVEN)#.to_i
 
           Transaction.create(:store => self.store, :sku => self.sku, :amount_in_cents => amount_in_cents, :currency => target_currency)
         end

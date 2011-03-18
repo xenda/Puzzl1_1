@@ -33,10 +33,10 @@ module Trader
         else
           rate_tree[from].reject{|r| r == base }.each do |base|
             rate = get(:from => base,:to => to, :base => from)
-            return (rate * get_rate(from,base))
+            return BigDecimal(rate.to_s) * get_rate(from,base) #.round(,BigDecimal::ROUND_HALF_EVEN)
           end
         end
-        return 0
+        return BigDecimal("0")
       rescue Exception => ex
         puts ex.message
         puts ex.backtrace
