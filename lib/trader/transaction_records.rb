@@ -16,18 +16,18 @@ module Trader
         # we load all the transactions in an array
         collection = load_from_file(file)
         
-        @transactions = collection.map do |trans|
-
-                          # make some adjustments to the values (parsing, etc)
-                          amount, currency = parse_currency(trans[:amount])
-                                    amount = BigDecimal(amount)
-                                     store = trans[:store]
-                                       sku = trans[:sku]
-                                      
-                          # and we create the transaction
-                          Transaction.new(:store => store, :sku => sku, :amount => amount, :currency => currency)
-
-                          end
+        # @transactions = collection.map do |trans|
+        # 
+        #                   # make some adjustments to the values (parsing, etc)
+        #                   amount, currency = parse_currency(trans[:amount])
+        #                             amount = BigDecimal(amount)
+        #                              store = trans[:store]
+        #                                sku = trans[:sku]
+        #                               
+        #                   # and we create the transaction
+        #                   Transaction.new(:store => store, :sku => sku, :amount => amount, :currency => currency)
+        # 
+        #                   end
       end
 
       def parse_currency(currency)
@@ -44,14 +44,20 @@ module Trader
       
       def load_from_file(file)
         
-        transactions = []
-
         # iterating through the csv rows, adding a new hash representing the operation to the transactioons array
         CSV.foreach(file, :headers => true) do |row|
-           transactions << row.headers.inject({}) {|result,data| result[data.to_sym] = row[data]; result}
+          
+          transaction = row.headers.inject({}) {|result,data| result[data.to_sym] = row[data]; result}
+          
+          amount, currency = parse_currency(transaction[:amount])
+          amount = BigDecimal(amount)
+          store = transaction[:store]
+          sku = transaction[:sku]
+                               
+          # and we create the transaction
+          @transactions << Transaction.new(:store => store, :sku => sku, :amount => amount, :currency => currency)
+           
          end
-
-         return transactions
 
       end      
       
