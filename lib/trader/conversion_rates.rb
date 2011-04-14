@@ -8,7 +8,7 @@ module Trader
   class ConversionRates
     
     @rates = []
-    @rates_tree = {}
+    @rates_tree = Hash.new([])
 
     class << self
       
@@ -38,9 +38,14 @@ module Trader
         # computes de rates_tree, showing all the possible iterations and existing relations 
         # also, adds missing rates (if there's USD -> CAD but no CAD ->, it creates it)
         compute_rates_tres        
-        # returns the created rates
+
         @rates
         
+      end
+
+      def add_rate(rate)
+        @rates << rate unless @rates.include? rate
+        compute_rates_tres
       end
 
       def get(conditions)
@@ -83,6 +88,7 @@ module Trader
       def compute_rates_tres
         # iterate through each rate and create a sort-of tree structure of 
         # all the source currency and their targets existing conversions
+
         @rates.each do |rate|
           # if the root doesn't exists, initialize it
           unless @rates_tree[rate.to]
