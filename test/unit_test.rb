@@ -41,18 +41,18 @@ class TestTransactionalAggregator < Test::Unit::TestCase
 
   def test_loading_transactions_from_csv
     transaction = {:store => "Yonkers", :sku => "DM1210", :amount => "70.00 USD" }
-    collection = Trader::TransactionRecords.load_from_file("SAMPLE_TRANS")
+    collection = Trader::TransactionRecords.parse("SAMPLE_TRANS")
     assert_equal transaction, collection.first
   end
   
   def test_loading_transactions_from_csv
-    collection = Trader::TransactionRecords.load_from_file("TRANS.csv")
-    assert_equal 10000, collection.size
+    Trader::TransactionRecords.parse("TRANS.csv")
+    assert_equal 10000, Trader::TransactionRecords.transactions.size
   end
   
   def test_loading_currency_from_csv
-    collection = Trader::TransactionRecords.parse("SAMPLE_TRANS.csv")
-    transaction = collection.first
+    Trader::TransactionRecords.parse("SAMPLE_TRANS.csv")
+    transaction = Trader::TransactionRecords.transactions.first
     assert_equal BigDecimal("70"), transaction.amount
     assert_equal "USD", transaction.currency
   end
