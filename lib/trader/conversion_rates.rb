@@ -43,12 +43,6 @@ module Trader
         
       end
 
-      def add_rate(rate)
-        @rates << rate unless @rates.include? rate
-        compute_rates_tres
-        fill_missing_rates
-      end
-
       def get(conditions)
         from,to = conditions[:from], conditions[:to]
         
