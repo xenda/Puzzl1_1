@@ -1,0 +1,16 @@
+Hi there!
+
+Running this puzzle is quite simple. Just executing the main file will do the trick. 
+Actually, having the "xml-simple" gem will help. As in, will make it actually run. No additional
+dependencies or gems were used. 
+
+There are some test cases on the test/unit_test.rb file that could help to understand
+better how everything goes and I've tried to comment as much as I could on how it works.
+
+The first run of this problem used some dynamic programming tricks (like a to_usd_currency)
+method and some reopening of the Float class to at a "round_half_even" method but ultimately,
+most of that code appear to be more a show-off code than utilitarian so I reworked it to be more 
+simpler. Also, I removed a lot of it to simplify it further. There is no better code than no code
+at all.
+
+Also, I changed my own function to use BigDecimal, and their support.

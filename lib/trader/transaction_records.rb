@@ -11,79 +11,87 @@ module Trader
         @@transactions = []
       end
       
-      def get_for_product(product_sku,currency=false)
-        records = @@transactions.select{|transaction| transaction.sku == product_sku}
-        return records unless currency
-        
-        # removes already there transactions
-        currency_records = records.select{|t| t.currency == currency }
-        base_total = currency_records.inject(0){|sum, t| sum + t.amount_in_cents}
-        puts "#{currency}: #{base_total.to_f}"
-        records -= currency_records
-        
-        target_currencies = []
-        records.map(&:currency).each {|r| target_currencies << r unless target_currencies.include? r  }
-        
-        pre_totals = target_currencies.map do |target_currency|
-        
-          conversion = ConversionRates.get(:from => target_currency, :to => currency)
-          puts "#{target_currency}-#{currency}: #{conversion}"
-          pre_total = records.select{|r| r.currency == target_currency }.map(&:amount_in_cents).map do |r|
-            # puts r
-            res = (r * conversion).round(2,BigDecimal::ROUND_HALF_EVEN)
-            # puts res.to_s("F")
-            res
-          end
-          pre_total = pre_total.inject(0){|s,i| s+i }
-          pre_total
-        end
-        
-        pre_total = pre_totals.inject(0){|sum,t| sum + t }
-        
-        puts "Others: #{pre_total.to_s('F')}"
-        total = base_total + pre_total
-
-      end
-      
-      def get_total_for_product(product_sku,currency=false)
-        get_for_product(product_sku,currency)
-      end
-      
       def parse(file)
+      
+        # we load all the transactions in an array
         collection = load_from_file(file)
+        
         @@transactions = collection.map do |trans|
-                            amount, currency = parse_currency(trans[:amount])
-                            Transaction.create(:store => trans[:store], :sku => trans[:sku], :amount_in_cents => parse_amount(amount), :currency => currency)
+
+                          # make some adjustments to the values (parsing, etc)
+                          amount, currency = parse_currency(trans[:amount])
+                                    amount = BigDecimal(amount)
+                                     store = trans[:store]
+                                       sku = trans[:sku]
+                                      
+                          # and we create the transaction
+                          Transaction.create(:store => store, :sku => sku, :amount => amount, :currency => currency)
+
                           end
       end
 
-      def parse_amount(amount)
-        # (BigDecimal(amount).round(2,BigDecimal::ROUND_HALF_EVEN)) #  * 100 ) #.to_i
-        BigDecimal(amount)
-      end
-
       def parse_currency(currency)
+
+        # Matches the transaction amount. From 70.00 USD to ["70.00","USD"]
         if currency =~ /(\d{2}\.\d{2})\s(\D{2,3})/
           [$1.to_s,$2]
         else
+          # if there isn't anything, return 0.00 with no currency
           ["0.00",""]
         end
+
       end
-
+      
       def load_from_file(file)
-
-        file << ".csv" unless file =~ /\.csv/ 
+        
         transactions = []
+
+        # iterating through the csv rows, adding a new hash representing the operation to the transactioons array
         CSV.foreach(file, :headers => true) do |row|
-           row_hash = {}
-           row.headers.each do |i|
-             row_hash[i.to_sym] = row[i]
-           end
-           transactions << row_hash
+           transactions << row.headers.inject({}) {|result,data| result[data.to_sym] = row[data]; result}
          end
-         transactions
+
+         return transactions
+
       end      
       
+      
+      def get_total_for_product(product_sku,currency=false)
+
+        # get all the records from the sku
+        records = @@transactions.select{|transaction| transaction.sku == product_sku}
+
+        # if no currency is asked, returned it as it
+        return records unless currency
+        
+        # removes already there transactions and saves it for later
+        currency_records = records.select{|t| t.currency == currency }
+        records -= currency_records
+        
+        # get all the existing other currencies
+        target_currencies = records.map(&:currency).inject([]) {|result,r| result << r unless result.include? r; result  }
+        
+        pre_totals = target_currencies.map do |target_currency|
+        
+          # get the conversion
+          conversion = ConversionRates.get(:from => target_currency, :to => currency)
+          
+          # for each currency, select the records, get their amounts and converse them
+          pre_total = records.select{|r| r.currency == target_currency }.map(&:amount).map {|r| (r * conversion).round(2,BigDecimal::ROUND_HALF_EVEN) }
+
+          # sum the results
+          pre_total.inject(0){|s,i| s+i }
+
+        end
+        
+        # gets the total of the currency records and adds them to the converted totals
+        base_total = currency_records.map(&:amount).inject(0){|sum, t| sum + t}
+        pre_total = pre_totals.inject(0){|sum,t| sum + t }
+          
+        total = base_total + pre_total
+
+      end
+    
     end    
     
   end

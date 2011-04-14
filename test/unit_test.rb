@@ -10,12 +10,6 @@ class TestTransactionalAggregator < Test::Unit::TestCase
     Trader::ConversionRates.teardown
     Trader::TransactionRecords.teardown
   end
-
-  def test_missing_rates_are_created
-    rate = Trader::Rate.create(:from => "USD",:to => "PEN", :conversion => 2.8)
-    Trader::ConversionRates.add_rate(rate)
-    assert_equal BigDecimal("0.3571"), Trader::ConversionRates.get(:from => "PEN", :to => "USD")
-  end
   
   def test_missing_rates_are_derived
     rate = Trader::Rate.create(:from => "USD",:to => "PEN", :conversion => 2.8)    
@@ -28,30 +22,23 @@ class TestTransactionalAggregator < Test::Unit::TestCase
   end
   
   def test_loading_rates_from_xml
-    Trader::ConversionRates.parse("SAMPLE_RATES")
+    Trader::ConversionRates.parse("SAMPLE_RATES.xml")
     rate = Trader::Rate.create(:from => "AUD",:to => "CAD", :conversion => 1.0079)
     assert_equal rate, Trader::ConversionRates.rates.first
   end
 
-  def test_loading_real_rates_from_xml
-    Trader::ConversionRates.parse("RATES")
-    assert_equal 6, Trader::ConversionRates.rates.size
-  end
-
   def test_deriving_rate
-    Trader::ConversionRates.parse("SAMPLE_RATES")
+    Trader::ConversionRates.parse("SAMPLE_RATES.xml")
     assert_equal BigDecimal("1.0169711"), Trader::ConversionRates.get(:from => "AUD", :to => "USD")
   end
 
   def test_deriving_real_rate
-    Trader::ConversionRates.parse("RATES")
+    Trader::ConversionRates.parse("RATES.xml")
     assert_equal BigDecimal("1.0169711"), Trader::ConversionRates.get(:from => "AUD", :to => "USD")
     assert_equal BigDecimal("1.009"), Trader::ConversionRates.get(:from => "CAD", :to => "USD")  
     assert_equal BigDecimal("1.36701255262"), Trader::ConversionRates.get(:from => "EUR", :to => "USD")
   end
 
-
-  
   def test_loading_transactions_from_csv
     transaction = {:store => "Yonkers", :sku => "DM1210", :amount => "70.00 USD" }
     collection = Trader::TransactionRecords.load_from_file("SAMPLE_TRANS")
@@ -59,54 +46,33 @@ class TestTransactionalAggregator < Test::Unit::TestCase
   end
   
   def test_loading_transactions_from_csv
-    collection = Trader::TransactionRecords.load_from_file("TRANS")
+    collection = Trader::TransactionRecords.load_from_file("TRANS.csv")
     assert_equal 10000, collection.size
   end
   
   def test_loading_currency_from_csv
-    collection = Trader::TransactionRecords.parse("SAMPLE_TRANS")
+    collection = Trader::TransactionRecords.parse("SAMPLE_TRANS.csv")
     transaction = collection.first
-    assert_equal BigDecimal("70"), transaction.amount_in_cents
+    assert_equal BigDecimal("70"), transaction.amount
     assert_equal "USD", transaction.currency
   end
   
   def test_convert_transaction_from_one_to_another
-    Trader::ConversionRates.parse("SAMPLE_RATES")    
-    transaction = Trader::Transaction.create(:store => "Demo", :sku => "DM123", :amount_in_cents => 1230, :currency => "USD")
-    assert_equal BigDecimal("1219.05"), transaction.to_cad_currency.amount_in_cents
+    Trader::ConversionRates.parse("SAMPLE_RATES.xml")    
+    transaction = Trader::Transaction.create(:store => "Demo", :sku => "DM123", :amount => 1230, :currency => "USD")
+    assert_equal BigDecimal("1219.05"), transaction.exchange_to("CAD").amount
   end
-  # 
-  # def test_getting_transactions_from_product
-  #   Trader::TransactionRecords.parse("SAMPLE_TRANS")
-  #   assert_equal 3, Trader::TransactionRecords.get_for_product("DM1182").size
-  # end
-  
-  # def test_getting_transactions_from_product
-  #   Trader::TransactionRecords.parse("TRANS")
-  #   assert_equal 1010, Trader::TransactionRecords.get_for_product("DM1182").size
-  # end
-  # 
-  # 
-  # def test_getting_transactions_from_product_with_currency
-  #   Trader::TransactionRecords.parse("SAMPLE_TRANS")
-  #   Trader::ConversionRates.parse("SAMPLE_RATES")        
-  #   assert_equal 3, Trader::TransactionRecords.get_for_product("DM1182","USD").size
-  # end
-  # 
-  # def test_getting_transactions_from_product_with_currency
-  #   Trader::TransactionRecords.parse("TRANS")
-  #   Trader::ConversionRates.parse("RATES")        
-  #   assert_equal 1010, Trader::TransactionRecords.get_for_product("DM1182","USD").size
-  #   # Trader::TransactionRecords.get_for_product("DM1182","USD").map{|i| [i.amount_in_cents, i.currency]}.inspect
-  # end
-
 
   def test_getting_total_amount_from_project
-    Trader::ConversionRates.teardown
-    Trader::TransactionRecords.teardown
-    Trader::TransactionRecords.parse("SAMPLE_TRANS")
-    Trader::ConversionRates.parse("SAMPLE_RATES")        
+    Trader::TransactionRecords.parse("SAMPLE_TRANS.csv")
+    Trader::ConversionRates.parse("SAMPLE_RATES.xml")        
     assert_equal BigDecimal("134.22"), Trader::TransactionRecords.get_total_for_product("DM1182","USD")
   end
+  
+  def test_getting_real_total_amount_from_project
+    Trader::TransactionRecords.parse("TRANS.csv")
+    Trader::ConversionRates.parse("RATES.xml")   
+    assert_equal BigDecimal("59482.02"), Trader::TransactionRecords.get_total_for_product("DM1182","USD")
+  end  
 
 end
