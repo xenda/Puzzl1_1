@@ -1,6 +1,10 @@
 require 'xmlsimple'
+require 'ostruct'
 
 module Trader
+  
+  class Rate < OpenStruct; end
+  
   class ConversionRates
     
     @rates = []
@@ -33,9 +37,7 @@ module Trader
         
         # computes de rates_tree, showing all the possible iterations and existing relations 
         # also, adds missing rates (if there's USD -> CAD but no CAD ->, it creates it)
-        compute_rates_tres
-        fill_missing_rates
-        
+        compute_rates_tres        
         # returns the created rates
         @rates
         
@@ -103,24 +105,6 @@ module Trader
       
       def rate_tree
         @rates_tree ||= compute_rates_tres
-      end
-      
-      def fill_missing_rates
-        
-        # Iterate through the rates, creating missing ones
-        # if USD -> CAD exists, it will attempt to create CAD -> USD
-        complete_match = @rates.map{|rate| @rates.select {|r| r.from == rate.to && r.to == rate.from  } }.flatten.compact
-        missing = @rates - complete_match
-        # create missing rates
-        missing.each do |rate|
-
-                  from = rate.to
-                    to = rate.from
-            conversion = (1/rate.conversion)
-            
-          @rates << Rate.new(:from => from, :to => to, :conversion => conversion)
-        end
-        
       end
       
     end
