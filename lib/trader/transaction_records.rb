@@ -3,12 +3,12 @@ require 'csv'
 module Trader
   class TransactionRecords
     
-    @@transactions = []
+    @transactions = []
     
     class << self
       
       def teardown
-        @@transactions = []
+        @transactions = []
       end
       
       def parse(file)
@@ -16,7 +16,7 @@ module Trader
         # we load all the transactions in an array
         collection = load_from_file(file)
         
-        @@transactions = collection.map do |trans|
+        @transactions = collection.map do |trans|
 
                           # make some adjustments to the values (parsing, etc)
                           amount, currency = parse_currency(trans[:amount])
@@ -25,7 +25,7 @@ module Trader
                                        sku = trans[:sku]
                                       
                           # and we create the transaction
-                          Transaction.create(:store => store, :sku => sku, :amount => amount, :currency => currency)
+                          Transaction.new(:store => store, :sku => sku, :amount => amount, :currency => currency)
 
                           end
       end
@@ -59,7 +59,7 @@ module Trader
       def get_total_for_product(product_sku,currency=false)
 
         # get all the records from the sku
-        records = @@transactions.select{|transaction| transaction.sku == product_sku}
+        records = @transactions.select{|transaction| transaction.sku == product_sku}
 
         # if no currency is asked, returned it as it
         return records unless currency

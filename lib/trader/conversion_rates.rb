@@ -3,14 +3,16 @@ require 'xmlsimple'
 module Trader
   class ConversionRates
     
-    @@rates = []
-    @@rates_tree = {}
+    @rates = []
+    @rates_tree = {}
 
     class << self
       
+      attr_accessor :rates, :rates_tree
+
       def teardown
-        @@rates = []
-        @@rates_tree = {}
+        @rates = []
+        @rates_tree = {}
       end
       
       def parse(filename)
@@ -18,14 +20,14 @@ module Trader
         # loads the structure from XML 
         parse_structure = XmlSimple.xml_in(filename)
       
-        # creates Rates objects from adjusted and converted data and assigns to cval @@rates
+        # creates Rates objects from adjusted and converted data and assigns to cival @rates
         parse_structure['rate'].each do |rate|
       
-                  from = rate["from"][0]
-                    to = rate["to"][0]
-            conversion = BigDecimal(rate["conversion"][0])
+          from = rate["from"].first
+          to = rate["to"].first
+          conversion = BigDecimal(rate["conversion"].first)
       
-          @@rates << Trader::Rate.create(:from => from ,:to => to, :conversion => conversion)
+          @rates << Rate.new(:from => from ,:to => to, :conversion => conversion)
       
         end
         
@@ -35,12 +37,12 @@ module Trader
         fill_missing_rates
         
         # returns the created rates
-        @@rates
+        @rates
         
       end
 
       def add_rate(rate)
-        @@rates << rate unless @@rates.include? rate
+        @rates << rate unless @rates.include? rate
         compute_rates_tres
         fill_missing_rates
       end
@@ -72,7 +74,7 @@ module Trader
 
       def get_rate(from,to)
         # gets the rate from the array
-        rates = @@rates.select{|rate| rate.from == from && rate.to == to }
+        rates = @rates.select{|rate| rate.from == from && rate.to == to }
         # if there were found, return the first - only - one 
         # if not, return 0
         unless rates.empty?
@@ -85,30 +87,30 @@ module Trader
       def compute_rates_tres
         # iterate through each rate and create a sort-of tree structure of 
         # all the source currency and their targets existing conversions
-        @@rates.each do |rate|
+        @rates.each do |rate|
           # if the root doesn't exists, initialize it
-          unless @@rates_tree[rate.to]
-            @@rates_tree[rate.to] = []
+          unless @rates_tree[rate.to]
+            @rates_tree[rate.to] = []
           end
-          unless @@rates_tree[rate.from]
-            @@rates_tree[rate.from] = []
+          unless @rates_tree[rate.from]
+            @rates_tree[rate.from] = []
           end
-          @@rates_tree[rate.from] << rate.to unless @@rates_tree[rate.from].include? rate.to
-          @@rates_tree[rate.to] << rate.from unless @@rates_tree[rate.to].include? rate.from  
+          @rates_tree[rate.from] << rate.to unless @rates_tree[rate.from].include? rate.to
+          @rates_tree[rate.to] << rate.from unless @rates_tree[rate.to].include? rate.from  
         end
-        @@rates_tree
+        @rates_tree
       end
       
       def rate_tree
-        @@rates_tree ||= compute_rates_tres
+        @rates_tree ||= compute_rates_tres
       end
       
       def fill_missing_rates
         
         # Iterate through the rates, creating missing ones
         # if USD -> CAD exists, it will attempt to create CAD -> USD
-        complete_match = @@rates.map{|rate| @@rates.select {|r| r.from == rate.to && r.to == rate.from  } }.flatten.compact
-        missing = @@rates - complete_match
+        complete_match = @rates.map{|rate| @rates.select {|r| r.from == rate.to && r.to == rate.from  } }.flatten.compact
+        missing = @rates - complete_match
         # create missing rates
         missing.each do |rate|
 
@@ -116,13 +118,9 @@ module Trader
                     to = rate.from
             conversion = (1/rate.conversion)
             
-          @@rates << Trader::Rate.create(:from => from, :to => to, :conversion => conversion)
+          @rates << Rate.new(:from => from, :to => to, :conversion => conversion)
         end
         
-      end
-
-      def rates
-        @@rates
       end
       
     end

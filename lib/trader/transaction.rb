@@ -1,16 +1,8 @@
-module Trader
-  class Transaction
-    
-    attr_accessor :store, :sku, :amount, :currency
-        
-    def self.create(attributes)
-      transaction = Transaction.new
-      attributes.keys.each do |a|
-        transaction.send("#{a}=",attributes[a])
-      end
-      transaction
-    end
+require 'ostruct'
 
+module Trader
+  class Transaction < OpenStruct
+    
     # returns an updated version of itself with the adjusted conversion
     def exchange_to(currency)
       return amount if self.currency == currency
